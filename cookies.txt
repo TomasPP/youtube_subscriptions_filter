@@ -1,0 +1,6 @@
+# Netscape HTTP Cookie File
+# http://curl.haxx.se/rfc/cookie_spec.html
+# This is a generated file!  Do not edit.
+
+.www.youtube.com	TRUE	/	FALSE	1597816234	yt-dev.storage-integrity	true
+.......
