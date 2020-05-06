@@ -446,7 +446,7 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
         print(stop_file_name, "file found. Stopping")
         return
     html = None
-    if test_mode:
+    if test_mode and os.path.exists(html_file_name):
         print('Loading from', html_file_name)
         html = read_file_into_str(html_file_name)
     if html is None:

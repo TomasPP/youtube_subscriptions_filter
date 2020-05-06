@@ -5,7 +5,7 @@ Video progress info is scraped from youtube subscriptions page using downloaded 
 
 # Installation
 
-Requirements: Python 3.6 or later.
+Requirements: Python 3.7 or later.
 
 1. Install this application with pip:
 
@@ -26,6 +26,8 @@ Requirements: Python 3.6 or later.
    [like](https://chrome.google.com/webstore/detail/cookiestxt/njabckikapfpffapmjgojcnbfjonfjfg?hl=en).  
 
 # Usage
+
+There is PyCharm project that can be used to run it or: 
 
 ```bash
 subscriptions_filter --secrets client_secrets.json --cookies cookies.txt target-playlist-id
