@@ -34,5 +34,3 @@ subscriptions_filter --secrets client_secrets.json --cookies cookies.txt target-
 
 where `target-playlist-id` playlist id where to add videos, can be found from the URL of the YouTube playlist.
 `--secrets`, `--cookies` are optional if files are in the same directory as `subscriptions_filter.py`.
-
-  
