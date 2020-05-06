@@ -8,9 +8,8 @@ Video progress info is scraped from youtube subscriptions page using downloaded 
 Requirements: Python 3.7 or later.
 
 1. Install this application with pip:
-
     ```bash
-    python3 -m pip install git+https://github.com/TomasPP/youtube_subscriptions_filter
+    python3 -m pip install --src ~/soft -e git+https://github.com/TomasPP/youtube_subscriptions_filter#egg=subscriptions_filter
     ```
 2. Create a project through the [Google Cloud Console](https://console.cloud.google.com/).
 3. Enable your project to use the YouTube Data API via the [APIs &
@@ -33,7 +32,7 @@ There is PyCharm project that can be used to run it or:
 subscriptions_filter --secrets client_secrets.json --cookies cookies.txt target-playlist-id
 ```
 
-where `target-playlist-id` can be found from the URL of the YouTube playlist.
-Use `--secrets`, `--cookies` optional parameters to specify `client_secrets.json` and `cookies.txt` locations if needed.   
+where `target-playlist-id` playlist id where to add videos, can be found from the URL of the YouTube playlist.
+`--secrets`, `--cookies` are optional if files are in the same directory as `subscriptions_filter.py`.
 
   
