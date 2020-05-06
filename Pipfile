@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-SubscriptionsFilter = {git = "..."}
+subscriptions_filter = {git = "https://github.com/TomasPP/youtube_subscriptions_filter"}
 
 [dev-packages]
 "e1839a8" = {path = ".", editable = true}

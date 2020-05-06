@@ -2,8 +2,8 @@ from setuptools import setup
 
 
 setup(
-    name="SubscriptionsFilter",
-    version="3.0.0",
+    name="subscriptions_filter",
+    version="1.0.0",
     license="MIT",
     author="Tomas P",
     author_email="ttt@ttt.tt",
