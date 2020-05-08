@@ -210,6 +210,7 @@ def get_unfinished_videos(json_str):
     # with open(json_file_name, encoding="utf8") as json_file:
     data = json.loads(json_str)
 
+    # playlistVideoRenderer
     video_matches = parse('$..gridVideoRenderer').find(data)
     if len(video_matches) == 0:
         return result
@@ -231,7 +232,6 @@ def get_unfinished_videos(json_str):
         info = VideoInfo(video_id, percent_watched, channel_id, channel_name, duration, title)
         result.videos[video_id] = info
     # print(result)
-    # print('percent_match len', len(percent_matches))
     return result
 
 
@@ -355,7 +355,7 @@ def get_ytube_html(cookies_file):
     url = 'https://www.youtube.com/feed/subscriptions'
     agent_header = 'User-Agent'
     agent_value = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)' \
-                  ' Chrome/73.0.3683.86 Safari/537.36'
+                  ' Chrome/81.0.4044.129 Safari/537.36'
     headers = {agent_header: agent_value}
     cookie_jar = YoutubeDLCookieJar(cookies_file)
     cookie_jar.load(ignore_discard=True, ignore_expires=True)
@@ -428,8 +428,13 @@ def filter_by_rules(rules_json_file_name, result, video_ids):
     videos_to_ignore = {}
     for video_id in video_ids:
         info = result.videos[video_id]
-        if info.channel_id in ignore_rules and info.duration_seconds > ignore_rules[info.channel_id]['minutes'] * 60:
-            videos_to_ignore[video_id] = info
+        try:
+            if info.channel_id in ignore_rules and info.duration_seconds > ignore_rules[info.channel_id]['minutes'] * 60:
+                videos_to_ignore[video_id] = info
+        except TypeError as exc:
+            print('ignoring exception', exc)
+            print('info', info)
+            print('rules minutes', ignore_rules[info.channel_id]['minutes'])
     return videos_to_ignore
 
 
