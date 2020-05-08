@@ -485,12 +485,24 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
     print_ignored_videos(videos_to_ignore, playlist_videos, video_ids)
 
     # remove from the list videos: 'finished-watching' or 'ignored-based-on-rules'
-    remove_playlist_item_ids = {playlist_item_id: video_id for playlist_item_id, video_id in playlist_item_ids.items()
-                                if result.is_video_watched(video_id) or video_id in videos_to_ignore}
-    for playlist_item_id in remove_playlist_item_ids.keys():
-        youtube.playlistItems().delete(id=playlist_item_id).execute()
-    print('removed videos from playlist count', len(remove_playlist_item_ids))
-    print(remove_playlist_item_ids)
+    remove_video_ids = [video_id for video_id in playlist_item_ids.items()
+                        if result.is_video_watched(video_id) or video_id in videos_to_ignore]
+    if len(remove_video_ids) > 0:
+        if len(added_videos) > 0:
+            # reload playlist item id's that could have changed after adding videos
+            playlist_item_ids = get_playlist_item_ids(youtube, target_playlist_id)
+        remove_playlist_item_ids = {}
+        for playlist_item_id, video_id in playlist_item_ids.items():
+            if video_id in remove_video_ids:
+                try:
+                    youtube.playlistItems().delete(id=playlist_item_id).execute()
+                    remove_playlist_item_ids[playlist_item_id] = video_id
+                except apiclient.errors.HttpError as exc:
+                    if exc.resp.status == HTTPStatus.NOT_FOUND:
+                        print('ignoring exception', exc)
+                    raise
+        print(remove_playlist_item_ids)
+    print('removed videos from playlist count', len(remove_video_ids))
 
 
 def main():
