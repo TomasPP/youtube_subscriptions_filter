@@ -26,9 +26,7 @@ Requirements: Python 3.7 or later.
 
 # Usage
 
-There is PyCharm project that can be used to run it or: 
-
-```bash
+```bash 
 subscriptions_filter --secrets client_secrets.json --cookies cookies.txt target-playlist-id
 ```
 
