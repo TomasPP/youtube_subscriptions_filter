@@ -186,19 +186,24 @@ class VideoInfoList:
 
 
 def get_duration_in_seconds(duration):
-    match = re.match(r"\d{2}:\d{2}:\d{2}", duration)
-    x = None
-    if match:
-        x = time.strptime(duration, '%H:%M:%S')
-    else:
-        match = re.match(r"\d{2}:\d{2}", duration)
-        if match:
-            x = time.strptime(duration, '%M:%S')
-        else:
-            print('ttt xxx unable to parse duration', duration)
     seconds = None
-    if x:
-        seconds = datetime.timedelta(hours=x.tm_hour, minutes=x.tm_min, seconds=x.tm_sec).total_seconds()
+    try:
+        match = re.match(r"\d{2}:\d{2}:\d{2}", duration)
+        x = None
+        if match:
+            x = time.strptime(duration, '%H:%M:%S')
+        else:
+            match = re.match(r"\d{2}:\d{2}", duration)
+            if match:
+                x = time.strptime(duration, '%M:%S')
+            else:
+                print('ttt xxx unable to parse duration', duration)
+        if x:
+            seconds = datetime.timedelta(hours=x.tm_hour, minutes=x.tm_min, seconds=x.tm_sec).total_seconds()
+    except:
+        e = sys.exc_info()[0]
+        print('duration', duration, ' exception', e)
+        raise e
     return seconds
 
 
@@ -493,7 +498,7 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
 
     # load additional video progress info from youtube playlist page
     playlist_result = scrape_ytube_page(ytube_playlist_url, cookies_file, ytube_playlist_json_root_node,
-                                       'playlist.html', 'playlist.json', test_mode)
+                                        'playlist.html', 'playlist.json', test_mode)
     finished_playlist_videos = {video_id: info for video_id, info in playlist_result.videos.items()
                                 if playlist_result.is_watched(info)}
     # print('finished', VideoInfoList.to_str(finished_playlist_videos.values()))
