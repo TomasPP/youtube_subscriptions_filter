@@ -141,7 +141,10 @@ class VideoInfo:
         self.channel_name = channel_name
         self.title = title
         self.duration = duration
-        self.duration_seconds = get_duration_in_seconds(duration)
+        if duration is None:
+            print(self)
+        else:
+            self.duration_seconds = get_duration_in_seconds(duration)
 
     def __str__(self):
         return "{" + self.video_id + " " + str(self.percent_watched) + " " + \
