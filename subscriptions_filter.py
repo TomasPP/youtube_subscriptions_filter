@@ -141,10 +141,7 @@ class VideoInfo:
         self.channel_name = channel_name
         self.title = title
         self.duration = duration
-        if duration is None:
-            print(self)
-        else:
-            self.duration_seconds = get_duration_in_seconds(duration)
+        self.duration_seconds = get_duration_in_seconds(duration)
 
     def __str__(self):
         return "{" + self.video_id + " " + str(self.percent_watched) + " " + \
@@ -189,24 +186,22 @@ class VideoInfoList:
 
 
 def get_duration_in_seconds(duration):
-    seconds = None
-    try:
-        match = re.match(r"\d{2}:\d{2}:\d{2}", duration)
-        x = None
+    if duration is None:  # known case live streams do not have duration
+        return 0
+
+    seconds = 0
+    match = re.match(r"\d{2}:\d{2}:\d{2}", duration)
+    x = None
+    if match:
+        x = time.strptime(duration, '%H:%M:%S')
+    else:
+        match = re.match(r"\d{2}:\d{2}", duration)
         if match:
-            x = time.strptime(duration, '%H:%M:%S')
+            x = time.strptime(duration, '%M:%S')
         else:
-            match = re.match(r"\d{2}:\d{2}", duration)
-            if match:
-                x = time.strptime(duration, '%M:%S')
-            else:
-                print('ttt xxx unable to parse duration', duration)
-        if x:
-            seconds = datetime.timedelta(hours=x.tm_hour, minutes=x.tm_min, seconds=x.tm_sec).total_seconds()
-    except:
-        e = sys.exc_info()[0]
-        print('duration', duration, ' exception', e)
-        raise e
+            print('ttt: unable to parse duration', duration)   # todo
+    if x:
+        seconds = datetime.timedelta(hours=x.tm_hour, minutes=x.tm_min, seconds=x.tm_sec).total_seconds()
     return seconds
 
 
@@ -431,14 +426,9 @@ def filter_by_rules(rules_json_file_name, result, video_ids):
     videos_to_ignore = {}
     for video_id in video_ids:
         info = result.videos[video_id]
-        try:
-            if info.channel_id in ignore_rules and \
-                    info.duration_seconds > ignore_rules[info.channel_id]['minutes'] * 60:
-                videos_to_ignore[video_id] = info
-        except TypeError as exc:
-            print('ignoring exception', exc)
-            print('info', info)
-            print('rules minutes', ignore_rules[info.channel_id]['minutes'])
+        if info.channel_id in ignore_rules and \
+                info.duration_seconds > ignore_rules[info.channel_id]['minutes'] * 60:
+            videos_to_ignore[video_id] = info
     return videos_to_ignore
 
 
@@ -451,7 +441,7 @@ def delete_videos(youtube, remove_video_ids, playlist_item_ids):
                 removed_playlist_item_ids[playlist_item_id] = video_id
             except apiclient.errors.HttpError as exc:
                 if exc.resp.status == HTTPStatus.NOT_FOUND:
-                    print('ignoring exception', exc)
+                    print('ttt: error deleting', playlist_item_id, ' ', video_id, ' ignoring exception', exc)  # todo
                 raise
     return removed_playlist_item_ids
 
