@@ -150,33 +150,28 @@ class VideoInfo:
 
 
 class VideoInfoList:
-    videos = {}
+    def __init__(self):
+        self.videos = {}
 
     def update_info(self, video_id, percent_watched):
         info = self.videos[video_id]
         info.percent_watched = percent_watched
 
     def get_unfinished_ids(self):
-        result = []
-        for video_id in self.videos.keys():
-            percent = self.videos[video_id].percent_watched
-            if not self.is_percent_watched(percent):
-                result.append(video_id)
-                # if percent == 0:
-                #     print(video_id)
-        return result
+        return [video_id for video_id, info in self.videos.items()
+                if not self.is_watched(info)]
 
     def is_empty(self):
         return len(self.videos) == 0
 
     @staticmethod
-    def is_percent_watched(percent_watched):
-        return percent_watched >= 95
+    def is_watched(info):
+        return info.percent_watched >= 95
 
     def is_video_watched(self, video_id):
         info = self.videos.get(video_id)
         if info is not None:
-            return self.is_percent_watched(info.percent_watched)
+            return self.is_watched(info)
         return False
 
     @staticmethod
@@ -199,19 +194,20 @@ def get_duration_in_seconds(duration):
         match = re.match(r"\d{2}:\d{2}", duration)
         if match:
             x = time.strptime(duration, '%M:%S')
+        else:
+            print('ttt xxx unable to parse duration', duration)
     seconds = None
     if x:
         seconds = datetime.timedelta(hours=x.tm_hour, minutes=x.tm_min, seconds=x.tm_sec).total_seconds()
     return seconds
 
 
-def get_unfinished_videos(json_str):
+def get_unfinished_videos(json_str, root_node_name):
     result = VideoInfoList()
     # with open(json_file_name, encoding="utf8") as json_file:
     data = json.loads(json_str)
 
-    # playlistVideoRenderer
-    video_matches = parse('$..gridVideoRenderer').find(data)
+    video_matches = parse('$..'+root_node_name).find(data)
     if len(video_matches) == 0:
         return result
 
@@ -351,8 +347,7 @@ def extract_json(html):
     return json_str
 
 
-def get_ytube_html(cookies_file):
-    url = 'https://www.youtube.com/feed/subscriptions'
+def get_ytube_html(url, cookies_file):
     agent_header = 'User-Agent'
     agent_value = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)' \
                   ' Chrome/81.0.4044.129 Safari/537.36'
@@ -429,7 +424,8 @@ def filter_by_rules(rules_json_file_name, result, video_ids):
     for video_id in video_ids:
         info = result.videos[video_id]
         try:
-            if info.channel_id in ignore_rules and info.duration_seconds > ignore_rules[info.channel_id]['minutes'] * 60:
+            if info.channel_id in ignore_rules and \
+                    info.duration_seconds > ignore_rules[info.channel_id]['minutes'] * 60:
                 videos_to_ignore[video_id] = info
         except TypeError as exc:
             print('ignoring exception', exc)
@@ -438,32 +434,38 @@ def filter_by_rules(rules_json_file_name, result, video_ids):
     return videos_to_ignore
 
 
+def delete_videos(youtube, remove_video_ids, playlist_item_ids):
+    removed_playlist_item_ids = {}
+    for playlist_item_id, video_id in playlist_item_ids.items():
+        if video_id in remove_video_ids:
+            try:
+                youtube.playlistItems().delete(id=playlist_item_id).execute()
+                removed_playlist_item_ids[playlist_item_id] = video_id
+            except apiclient.errors.HttpError as exc:
+                if exc.resp.status == HTTPStatus.NOT_FOUND:
+                    print('ignoring exception', exc)
+                raise
+    return removed_playlist_item_ids
+
+
 def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, test_mode):
-    # readme, github
-    # cron
     html_file_name = 'youtube.html'
     json_file_name = 'youtube.json'
     rules_json_file_name = 'rules.json'
+    ytube_subscription_url = 'https://www.youtube.com/feed/subscriptions'
+    ytube_playlist_url = 'https://www.youtube.com/playlist?list=' + target_playlist_id
     stop_file_name = 'STOP'
+    allow_duplicates = False
+    ytube_subscription_json_root_node = 'gridVideoRenderer'
+    ytube_playlist_json_root_node = 'playlistVideoRenderer'
 
     print(datetime.datetime.now(), "Starting...")
     if os.path.exists(stop_file_name):
         print(stop_file_name, "file found. Stopping")
         return
-    html = None
-    if test_mode and os.path.exists(html_file_name):
-        print('Loading from', html_file_name)
-        html = read_file_into_str(html_file_name)
-    if html is None:
-        html = get_ytube_html(cookies_file)
-    write_str_to_file(html_file_name, html)
 
-    json_str = extract_json(html)
-    exit_if_true(json_str is None)
-    write_str_to_file(json_file_name, json_str)
-
-    allow_duplicates = False
-    result = get_unfinished_videos(json_str)
+    result = scrape_ytube_page(ytube_subscription_url, cookies_file, ytube_subscription_json_root_node,
+                               html_file_name, json_file_name, test_mode)
     exit_if_true(result.is_empty())
     video_ids = result.get_unfinished_ids()
 
@@ -489,25 +491,44 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
         print_added_videos(added_videos)
     print_ignored_videos(videos_to_ignore, playlist_videos, video_ids)
 
+    # load additional video progress info from youtube playlist page
+    playlist_result = scrape_ytube_page(ytube_playlist_url, cookies_file, ytube_playlist_json_root_node,
+                                       'playlist.html', 'playlist.json', test_mode)
+    finished_playlist_videos = {video_id: info for video_id, info in playlist_result.videos.items()
+                                if playlist_result.is_watched(info)}
+    # print('finished', VideoInfoList.to_str(finished_playlist_videos.values()))
+
     # remove from the list videos: 'finished-watching' or 'ignored-based-on-rules'
-    remove_video_ids = [video_id for video_id in playlist_item_ids.items()
-                        if result.is_video_watched(video_id) or video_id in videos_to_ignore]
+    remove_video_ids = [video_id for video_id in playlist_item_ids.values()
+                        if result.is_video_watched(video_id)
+                        or video_id in videos_to_ignore
+                        or video_id in finished_playlist_videos]
+
     if len(remove_video_ids) > 0:
-        if len(added_videos) > 0:
+        """if len(added_videos) > 0:
             # reload playlist item id's that could have changed after adding videos
-            playlist_item_ids = get_playlist_item_ids(youtube, target_playlist_id)
-        remove_playlist_item_ids = {}
-        for playlist_item_id, video_id in playlist_item_ids.items():
-            if video_id in remove_video_ids:
-                try:
-                    youtube.playlistItems().delete(id=playlist_item_id).execute()
-                    remove_playlist_item_ids[playlist_item_id] = video_id
-                except apiclient.errors.HttpError as exc:
-                    if exc.resp.status == HTTPStatus.NOT_FOUND:
-                        print('ignoring exception', exc)
-                    raise
-        print(remove_playlist_item_ids)
+            playlist_item_ids = get_playlist_item_ids(youtube, target_playlist_id)"""
+        removed_playlist_item_ids = delete_videos(youtube, remove_video_ids, playlist_item_ids)
+        print(removed_playlist_item_ids)
+
     print('removed videos from playlist count', len(remove_video_ids))
+
+
+def scrape_ytube_page(url, cookies_file, root_node_name, html_file_name, json_file_name, test_mode):
+    html = None
+    result = VideoInfoList()
+    if test_mode and os.path.exists(html_file_name):
+        print('Loading from', html_file_name)
+        html = read_file_into_str(html_file_name)
+    if html is None:
+        html = get_ytube_html(url, cookies_file)
+    write_str_to_file(html_file_name, html)
+    json_str = extract_json(html)
+    write_str_to_file(json_file_name, json_str)
+    if json_str is None:
+        return result
+    result = get_unfinished_videos(json_str, root_node_name)
+    return result
 
 
 def main():
