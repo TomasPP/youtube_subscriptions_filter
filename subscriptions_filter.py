@@ -185,10 +185,12 @@ class VideoInfoList:
         return self.to_str(self.videos.values())
 
 
+SPECIAL_DURATIONS = {'TIESIOGIAI', 'PREMJERA', 'LIVE', 'PREMIERE'}
+
+
 def get_duration_in_seconds(duration):
     if duration is None:  # known case live streams do not have duration
         return 0
-
     seconds = 0
     match = re.match(r"\d{2}:\d{2}:\d{2}", duration)
     x = None
@@ -199,7 +201,8 @@ def get_duration_in_seconds(duration):
         if match:
             x = time.strptime(duration, '%M:%S')
         else:
-            print('ttt: unable to parse duration', duration)   # todo
+            if duration not in SPECIAL_DURATIONS:
+                print('tttt: unable to parse duration', duration)
     if x:
         seconds = datetime.timedelta(hours=x.tm_hour, minutes=x.tm_min, seconds=x.tm_sec).total_seconds()
     return seconds
