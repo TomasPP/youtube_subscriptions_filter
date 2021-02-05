@@ -419,9 +419,9 @@ def print_added_videos(added_videos):
         print("added videos:", added_videos)
 
 
-def exit_if_true(condition):
+def exit_if_true(condition, videos):
     if condition:
-        print('ERROR: html contains no videos.')
+        print(videos)
         exit(0)
 
 
@@ -469,7 +469,7 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
 
     result = scrape_ytube_page(ytube_subscription_url, cookies_file, ytube_subscription_json_root_node,
                                html_file_name, json_file_name, test_mode)
-    exit_if_true(result.is_empty())
+    exit_if_true(result.is_empty(), 'ERROR: html contains no videos.')
     video_ids = result.get_unfinished_ids()
 
     print('unfinished youtube videos', len(video_ids))
