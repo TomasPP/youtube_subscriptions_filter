@@ -399,6 +399,8 @@ def read_file_into_str(file_name):
 
 def write_str_to_file(file_name, text):
     with open(file_name, 'w', encoding='utf8') as file:
+        if text is None:
+            text = ''
         file.write(text)
         file.close()
 
