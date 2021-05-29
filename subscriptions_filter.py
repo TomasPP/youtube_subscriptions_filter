@@ -192,12 +192,12 @@ def get_duration_in_seconds(duration):
     if duration is None:  # known case live streams do not have duration
         return 0
     seconds = 0
-    match = re.match(r"\d{2}:\d{2}:\d{2}", duration)
+    match = re.match(r"\d{1,2}:\d{1,2}:\d{2}", duration)
     x = None
     if match:
         x = time.strptime(duration, '%H:%M:%S')
     else:
-        match = re.match(r"\d{2}:\d{2}", duration)
+        match = re.match(r"\d{1,2}:\d{2}", duration)
         if match:
             x = time.strptime(duration, '%M:%S')
         else:
