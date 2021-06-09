@@ -23,8 +23,6 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.file import Storage
 from oauth2client.tools import run_flow
 
-# playing around. with youtube api.
-
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 
@@ -160,6 +158,10 @@ class VideoInfoList:
     def get_unfinished_ids(self):
         return [video_id for video_id, info in self.videos.items()
                 if not self.is_watched(info)]
+
+    def get_finished_ids(self):
+        return [video_id for video_id, info in self.videos.items()
+                if self.is_watched(info)]
 
     def is_empty(self):
         return len(self.videos) == 0
@@ -333,12 +335,16 @@ def add_to_playlist(youtube, playlist_id, video_ids, added_videos_file, add_dupl
         except VideoAlreadyInPlaylistError:
             if add_duplicates:
                 warnings.warn(f"video {video_id} cannot be added as it is already in the playlist")
-        if added_videos_file:
-            added_videos_file.write(video_id + "\n")
+        append_video_id(added_videos_file, video_id)
         playlist_videos.append(video_id)
     if count:
         sys.stdout.write("\n")
     return added_videos
+
+
+def append_video_id(video_id_file, video_id):
+    if video_id_file:
+        video_id_file.write(video_id + "\n")
 
 
 def extract_json(html):
@@ -471,6 +477,7 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
                                html_file_name, json_file_name, test_mode)
     exit_if_true(result.is_empty(), 'ERROR: html contains no videos.')
     video_ids = result.get_unfinished_ids()
+    finished_video_ids = result.get_finished_ids()
 
     print('unfinished youtube videos', len(video_ids))
 
@@ -515,6 +522,18 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
         print(removed_playlist_item_ids)
 
     print('removed videos from playlist count', len(remove_video_ids))
+
+    # make sure finished videos from subscription feed are marked as already added.
+    # because once a week glitch happens and subscription feed returns them as unwatched
+    # and then they are unnecessarily added to playlist.
+    with open(added_videos_filename, "a") as f:
+        finished_added = []
+        for finished_video_id in finished_video_ids:
+            if finished_video_id not in added_video_ids:
+                append_video_id(f, finished_video_id)
+                finished_added.append(finished_video_id)
+        if finished_added:
+            print('watched videos marked as added', finished_added)
 
 
 def scrape_ytube_page(url, cookies_file, root_node_name, html_file_name, json_file_name, test_mode):
