@@ -354,8 +354,8 @@ def extract_json(html):
     start_script_tag_pos = html.rfind('<script', 0, pos)
     end_script_tag_pos = html.find('</script', pos)
     start_bracket_pos = html.find('{', start_script_tag_pos)
-    end_bracket_pos = html.rfind('}}}', start_bracket_pos, end_script_tag_pos)
-    json_str = html[start_bracket_pos:end_bracket_pos + 3]
+    end_bracket_pos = html.rfind('}', start_bracket_pos, end_script_tag_pos)
+    json_str = html[start_bracket_pos:end_bracket_pos + 1]
     return json_str
 
 
@@ -537,20 +537,29 @@ def add_unwatched_videos_to_playlist(youtube, cookies_file, target_playlist_id, 
 
 
 def scrape_ytube_page(url, cookies_file, root_node_name, html_file_name, json_file_name, test_mode):
-    html = None
     result = VideoInfoList()
-    if test_mode and os.path.exists(html_file_name):
-        print('Loading from', html_file_name)
-        html = read_file_into_str(html_file_name)
+    html = load_file_if_test_mode(html_file_name, test_mode)
     if html is None:
         html = get_ytube_html(url, cookies_file)
-    write_str_to_file(html_file_name, html)
-    json_str = extract_json(html)
-    write_str_to_file(json_file_name, json_str)
+        write_str_to_file(html_file_name, html)
+
+    json_str = load_file_if_test_mode(json_file_name, test_mode)
+    if json_str is None:
+        json_str = extract_json(html)
+        write_str_to_file(json_file_name, json_str)
+
     if json_str is None:
         return result
     result = get_unfinished_videos(json_str, root_node_name)
     return result
+
+
+def load_file_if_test_mode(file_name, test_mode):
+    file_str = None
+    if test_mode and os.path.exists(file_name):
+        print('Loading from', file_name)
+        file_str = read_file_into_str(file_name)
+    return file_str
 
 
 def main():
