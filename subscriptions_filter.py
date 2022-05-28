@@ -188,7 +188,7 @@ class VideoInfoList:
 
 
 SHORTS = 'SHORTS'
-SPECIAL_DURATIONS = {'TIESIOGIAI', 'PREMJERA', 'LIVE', 'PREMIERE', SHORTS}
+SPECIAL_DURATIONS = {'TIESIOGIAI', 'PREMJERA', 'LIVE', 'PREMIERE', SHORTS, 'UPCOMING'}
 
 
 def get_duration_in_seconds(duration):
